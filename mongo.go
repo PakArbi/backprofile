@@ -2,10 +2,15 @@ package backprofile
 
 import (
 	"context"
-    "time"
+	"time"
+	"bytes"
+	"image"
+	"image/png"
 
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	
 )
 
 func ConnectDB() (*mongo.Database, error) {
@@ -26,3 +31,24 @@ func ConnectDB() (*mongo.Database, error) {
 	return db, nil
 }
 
+
+// Fungsi untuk menyimpan gambar ke dalam MongoDB menggunakan GridFS
+func saveImageToMongoDB(img image.Image, bucket *gridfs.Bucket, filename string) error {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return err
+	}
+
+	uploadStream, err := bucket.OpenUploadStream(filename)
+	if err != nil {
+		return err
+	}
+	defer uploadStream.Close()
+
+	_, err = uploadStream.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

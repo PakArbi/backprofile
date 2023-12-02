@@ -1,10 +1,10 @@
 package backprofile
 
 import (
-	"fmt"
+	// "image"
 	"testing"
 	"time"
-	
+	// profiles "github.com/PakArbi/backprofile"
 ) 
 
 func TestCreateProfile(t *testing.T) {
@@ -28,23 +28,45 @@ func TestCreateProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating profile: %v", err)
 	}
-
-	// Check whether the profile is successfully created
-	// Add your logic here to verify the creation if needed
+	
 }
 
-// TestGenerateQRCodeString tests the GenerateQRCodeString function
-func TestGenerateQRCodeString(t*testing.T) {
-	// String to convert to QR code
-	text := "Hello, this is a test QR code string!"
+// func TestQRCodeToImage(t *testing.T) {
+//     // Contoh data QR code
+//     qrCodeData := []byte{ /* Masukkan data QR code di sini */ }
 
-	// Generate QR code as a URL-safe string
-	urlEncodedString, err := GenerateQRCodeString(text)
-	if err != nil {
-		fmt.Printf("Error generating QR code: %v", err)
-		return
-	}
+//     // Konversi data QR code ke gambar
+//     img, err := qrcodeToImage(qrCodeData)
+//     if err != nil {
+//         t.Fatalf("Failed to convert QR code to image: %v", err)
+//     }
 
-	// Display the URL-safe string
-	fmt.Println("URL-encoded QR code:", urlEncodedString)
-}
+//     // Periksa apakah img bukan nil dan merupakan instance dari image.Image
+//     if img == nil {
+//         t.Fatalf("Expected non-nil image, got nil")
+//     }
+
+//     _, isImage := img.(image.Image)
+//     if !isImage {
+//         t.Fatalf("Expected image.Image type, got different type")
+//     }
+
+// }
+
+// // Fungsi test untuk JSONToQRCodeImage
+// func TestJSONToQRCodeImage(t *testing.T) {
+//     // Data JSON untuk pengujian
+//     jsonData := []byte(`{"ID": "1", "NamaLengkap": "Muhammad Faisal Ashshidiq", "NPM": "1214041", "Prodi": "Teknik Informatika","namaKendaraan": "Yamaha Mio Z", "nomorKendaraan":"D 6613 GXF"}`)
+
+//     // Panggil fungsi yang akan diuji
+//     img, err := profiles.JSONToQRCodeImage(jsonData)
+//     if err != nil {
+//         t.Fatalf("Failed to convert JSON to QR code image: %v", err)
+//     }
+
+//     // Lakukan pengujian terhadap hasil yang diharapkan
+//     if img == nil {
+//         t.Fatalf("Expected non-nil image, got nil")
+//     }
+
+// }

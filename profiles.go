@@ -221,6 +221,26 @@ func qrcodeToImage(qrCode []byte) (image.Image, error) {
 }
 
 
+// Fungsi untuk mengonversi data JSON menjadi gambar QR code
+func JSONToQRCodeImage(jsonData []byte) (image.Image, error) {
+    // Buat QR code dari data JSON
+    qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
+    if err != nil {
+        return nil, err
+    }
+
+    // Konversi byte array QR code ke dalam gambar
+    img, err := qrcodeToImage(qrCode)
+    if err != nil {
+        return nil, err
+    }
+
+    return img, nil
+}
+
+
+
+
 
 
 
