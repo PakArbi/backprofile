@@ -7,20 +7,41 @@ import (
 
 
 func TestParkiran(t *testing.T) {
-	mconn := SetConnection("MONGOSTRING", "PakarbiDB")
-	var parkirandata Parkiran
-	parkirandata.ParkiranId = 2
-	parkirandata.Nama = "Muhammad Faisal Ashshidiq"
-	parkirandata.NPM = "1214041"
-	parkirandata.Jurusan = "D4 Teknik Informatika"
-	parkirandata.NamaKendaraan = "Mio Z"
-	parkirandata.NomorKendaraan = "D 3316 GXF"
-	parkirandata.JenisKendaraan = "Motor"
-	CreateNewParkiran(mconn, "parkiran", parkirandata)
+	mconn, err := SetConnection("MONGOSTRING", "PakArbi")
+	if err != nil {
+		t.Fatalf("Error connecting to MongoDB: %v", err)
+	}
+
+	var parkirandata = Parkiran{
+		ParkiranId:     1,
+		Nama:           "Muhammad Faisal Ashshidiq",
+		NPM:            "1214041",
+		Jurusan:        "D4 Teknik Informatika",
+		NamaKendaraan:  "Mio Z",
+		NomorKendaraan: "D 3316 GXF",
+		JenisKendaraan: "Motor",
+	}
+
+	result, err := CreateNewParkiran(mconn, "Parkiran", parkirandata)
+	if err != nil {
+		t.Fatalf("Error creating parkiran: %v", err)
+	}
+
+	fmt.Printf("InsertedID: %v\n", result.InsertedID)
 }
 
 func TestAllParkiran(t *testing.T) {
-	mconn := SetConnection("MONGOSTRING", "PakarbiDB")
-	parkiran := GetAllParkiran(mconn, "parkiran")
-	fmt.Println(parkiran)
+	mconn, err := SetConnection("MONGOSTRING", "PakArbi")
+	if err != nil {
+		t.Fatalf("Error connecting to MongoDB: %v", err)
+	}
+
+	parkiran, err := GetAllParkiran(mconn, "Parkiran")
+	if err != nil {
+		t.Fatalf("Error fetching all parkiran: %v", err)
+	}
+
+	for _, p := range parkiran {
+		fmt.Println(p)
+	}
 }

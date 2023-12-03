@@ -21,86 +21,111 @@ import (
 
 )
 
-func GCHandlerFunc(Mongostring, dbname, colname string) string {
-	koneksyen := GetConnectionMongo(Mongostring, dbname)
-	dataprofile := GetAllData(koneksyen, colname)
+func GCHandlerFunc(Mongostring, dbname, colname string) (string, error) {
+    koneksyen, err := GetConnectionMongo(Mongostring, dbname)
+    if err != nil {
+        return "", fmt.Errorf("failed to connect to MongoDB: %v", err)
+    }
 
-	jsoncihuy, _ := json.Marshal(dataprofile)
+    dataprofile, err := GetAllDataProfile(koneksyen, colname)
+    if err != nil {
+        return "", fmt.Errorf("failed to get data from MongoDB: %v", err)
+    }
 
-	return string(jsoncihuy)
+    jsoncihuy, err := json.Marshal(dataprofile)
+    if err != nil {
+        return "", fmt.Errorf("failed to marshal data to JSON: %v", err)
+    }
+
+    return string(jsoncihuy), nil
 }
+
 
 func GCFPostDataProf(Mongostring, dbname, colname string, r *http.Request) string {
 	req := new(Credents)
-	conn := GetConnectionMongo(Mongostring, dbname)
+	conn, err := GetConnectionMongo(Mongostring, dbname)
+	if err != nil {
+		req.Status = strconv.Itoa(http.StatusInternalServerError)
+		req.Message = "error connecting to MongoDB: " + err.Error()
+		return ReturnStringStruct(req)
+	}
+
 	resp := new(Profile)
-	err := json.NewDecoder(r.Body).Decode(&resp)
+	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		req.Status = strconv.Itoa(http.StatusNotFound)
 		req.Message = "error parsing application/json: " + err.Error()
-	} else {
-		req.Status = strconv.Itoa(http.StatusOK)
-		Ins := InsertDataProfile(conn, colname, nil /* Untuk koordinat ([]float64), berikan nilai yang sesuai */, 
-		resp.ID, resp.NamaLengkap, 
-		resp.NPM, resp.Prodi, 
-		resp.NamaKendaraan, 
-		resp.NomorKendaraan, 
-		resp.Time.WaktuMasuk)
-
-		req.Message = fmt.Sprintf("%v:%v", "Berhasil Input data", Ins)
+		return ReturnStringStruct(req)
 	}
-	return ReturnStringStruct(req)
-}
 
-func ReturnStringStruct(Data any) string {
-	jsonee, _ := json.Marshal(Data)
-	return string(jsonee)
+	req.Status = strconv.Itoa(http.StatusOK)
+	insResult, insErr := InsertDataProfile(conn, colname, nil /* Untuk koordinat ([]float64), berikan nilai yang sesuai */, resp.ID, resp.NamaLengkap, resp.NPM, resp.Prodi, resp.NamaKendaraan, resp.NomorKendaraan, resp.Time.WaktuMasuk)
+	if insErr != nil {
+		req.Message = "Failed to insert data: " + insErr.Error()
+		return ReturnStringStruct(req)
+	}
+
+	req.Message = fmt.Sprintf("Berhasil Input data. ID yang disisipkan: %v", insResult)
+	return ReturnStringStruct(req)
 }
 
 func GCFUpdateProfile(Mongostring, dbname, colname string, r *http.Request) string {
-	req := new(Credents)
-	resp := new(Profile)
-	conn := GetConnectionMongo(Mongostring, dbname)
-	err := json.NewDecoder(r.Body).Decode(&resp)
-	if err != nil {
-		req.Status = strconv.Itoa(http.StatusNotFound)
-		req.Message = "error parsing application/json: " + err.Error()
-	} else {
-		req.Status = strconv.Itoa(http.StatusOK)
-		Ins := InsertDataProfile(conn, colname, nil /* Untuk koordinat ([]float64), berikan nilai yang sesuai */, 
-		resp.ID, 
-		resp.NamaLengkap, 
-		resp.NPM, 
-		resp.Prodi, 
-		resp.NamaKendaraan, 
-		resp.NomorKendaraan, 
-		resp.Time.WaktuMasuk)
+    req := new(Credents)
+    resp := new(Profile)
+    conn, err := GetConnectionMongo(Mongostring, dbname)
+    if err != nil {
+        req.Status = strconv.Itoa(http.StatusInternalServerError)
+        req.Message = "error connecting to MongoDB: " + err.Error()
+        return ReturnStringStruct(req)
+    }
 
-		req.Message = fmt.Sprintf("%v:%v", "Berhasil Update data", Ins)
-	}
-	return ReturnStringStruct(req)
+    err = json.NewDecoder(r.Body).Decode(&resp)
+    if err != nil {
+        req.Status = strconv.Itoa(http.StatusNotFound)
+        req.Message = "error parsing application/json: " + err.Error()
+        return ReturnStringStruct(req)
+    }
+
+    req.Status = strconv.Itoa(http.StatusOK)
+    err = UpdateDataProfile(conn, colname, resp.ID, resp.NamaLengkap, resp.NPM, resp.Prodi, resp.NamaKendaraan, resp.NomorKendaraan, resp.Time.WaktuMasuk)
+    if err != nil {
+        req.Message = "Failed to update data: " + err.Error()
+        return ReturnStringStruct(req)
+    }
+
+    req.Message = "Successfully updated data"
+    return ReturnStringStruct(req)
 }
+
 
 func GCFDeleteDataProfile(Mongostring, dbname, colname string, r *http.Request) string {
     req := new(Credents)
     resp := new(Profile)
-    conn := GetConnectionMongo(Mongostring, dbname)
-    err := json.NewDecoder(r.Body).Decode(&resp)
-    if err != nil {
+    conn, errConn := GetConnectionMongo(Mongostring, dbname)
+    if errConn != nil {
+        req.Status = strconv.Itoa(http.StatusInternalServerError)
+        req.Message = "error connecting to MongoDB: " + errConn.Error()
+        return ReturnStringStruct(req)
+    }
+
+    errDecode := json.NewDecoder(r.Body).Decode(&resp)
+    if errDecode != nil {
         req.Status = strconv.Itoa(http.StatusNotFound)
-        req.Message = "error parsing application/json: " + err.Error()
+        req.Message = "error parsing application/json: " + errDecode.Error()
+        return ReturnStringStruct(req)
+    }
+
+    req.Status = strconv.Itoa(http.StatusOK)
+    delResult, delErr := DeleteDataProfile(conn, colname, resp.ID)
+    if delErr != nil {
+        req.Status = strconv.Itoa(http.StatusInternalServerError)
+        req.Message = "error deleting data: " + delErr.Error()
     } else {
-        req.Status = strconv.Itoa(http.StatusOK)
-        delResult, delErr := DeleteDataProfile(conn, colname, resp.ID)
-        if delErr != nil {
-            req.Status = strconv.Itoa(http.StatusInternalServerError)
-            req.Message = "error deleting data: " + delErr.Error()
-        } else {
-            req.Message = fmt.Sprintf("Berhasil menghapus data. Jumlah data terhapus: %v", delResult.DeletedCount)
-        }
+        req.Message = fmt.Sprintf("Berhasil menghapus data. Jumlah data terhapus: %v", delResult.DeletedCount)
     }
     return ReturnStringStruct(req)
 }
+
 
 
 func CreateProfile(db *mongo.Database, profile Profile) error {

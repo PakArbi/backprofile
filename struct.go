@@ -1,7 +1,7 @@
 package backprofile
 
 import "go.mongodb.org/mongo-driver/mongo"
-
+import "encoding/json"
 
 type ResponseBack struct {
 	Status  int      `json:"status"`
@@ -43,6 +43,11 @@ type Credential struct {
 	Status  bool   `json:"status" bson:"status"`
 	Token   string `json:"token,omitempty" bson:"token,omitempty"`
 	Message string `json:"message,omitempty" bson:"message,omitempty"`
+}
+
+func ReturnStringStruct(req *Credents) string {
+    respJSON, _ := json.Marshal(req)
+    return string(respJSON)
 }
 
 type Credents struct {

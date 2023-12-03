@@ -3,12 +3,13 @@ package backprofile
 import (
 	"context"
 	"time"
+	"fmt"
 	"bytes"
 	"os"
 	"image"
 	"image/png"
 
-	"github.com/aiteung/atdb"
+	
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,33 +17,54 @@ import (
 	
 )
 
-func GetConnectionMongo(MongoString, dbname string) *mongo.Database {
-	MongoInfo := atdb.DBInfo{
-		DBString: os.Getenv(MongoString),
-		DBName:   dbname,
+func GetConnectionMongo(MongoString, dbname string) (*mongo.Database, error) {
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(os.Getenv(MongoString)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
 	}
-	conn := atdb.MongoConnect(MongoInfo)
-	return conn
+	db := client.Database(dbname)
+	return db, nil
 }
 
-func GetAllData(MongoConnect *mongo.Database, colname string) []Profile {
-	data := atdb.GetAllDoc[[]Profile](MongoConnect, colname)
-	return data
+func GetAllDataProfile(MongoConnect *mongo.Database, colname string) ([]Profile, error) {
+	cur, err := MongoConnect.Collection(colname).Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get data from MongoDB: %v", err)
+	}
+	defer cur.Close(context.Background())
+
+	var data []Profile
+	for cur.Next(context.Background()) {
+		var profile Profile
+		if err := cur.Decode(&profile); err != nil {
+			return nil, fmt.Errorf("failed to decode data from MongoDB: %v", err)
+		}
+		data = append(data, profile)
+	}
+	if err := cur.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error while fetching data from MongoDB: %v", err)
+	}
+	return data, nil
 }
 
-func InsertDataProfile(MongoConn *mongo.Database, colname string, coordinate []float64, id, namaLengkap, npm, prodi, namakendaraan, nomorkendaraan, timeString string) (InsertedID interface{}) {
-	req := new(Profile)
-	req.ID = id
-	req.NamaLengkap = namaLengkap
-	req.NPM = npm
-	req.NamaKendaraan = namakendaraan
-	req.NomorKendaraan = nomorkendaraan
-	req.Time = Time{Message: "Message", WaktuMasuk: timeString}
-	req.Time = Time{Message: "Message", WaktuKeluar: timeString}
+func InsertDataProfile(MongoConn *mongo.Database, colname string, coordinate []float64, id, namaLengkap, npm, prodi, namakendaraan, nomorkendaraan, timeString string) (interface{}, error) {
+	req := Profile{
+		ID:               id,
+		NamaLengkap:      namaLengkap,
+		NPM:              npm,
+		Prodi:            prodi,
+		NamaKendaraan:    namakendaraan,
+		NomorKendaraan:   nomorkendaraan,
+		Time:             Time{WaktuMasuk: timeString},
+	}
 
-	ins := atdb.InsertOneDoc(MongoConn, colname, req)
-	return ins
+	insResult, err := MongoConn.Collection(colname).InsertOne(context.Background(), req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert data into MongoDB: %v", err)
+	}
+	return insResult.InsertedID, nil
 }
+
 
 func UpdateDataProfile(MongoConn *mongo.Database, colname, id, namaLengkap, npm, prodi, namakendaraan, nomorkendaraan, timeString string) error {
     filter := bson.M{"id": id}

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aiteung/atdb"
-	// "github.com/whatsauth/watoken"
+	
 	"go.mongodb.org/mongo-driver/bson"
 	// "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,74 +13,93 @@ import (
 )
 
 // mongodb
-func MongoConnect(MongoString, dbname string) *mongo.Database {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MongoString)))
+
+func GetConnectionMongo(MONGOSTRING, dbname string) (*mongo.Database, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRING)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
+	}
+	return client.Database(dbname), nil
+}
+
+func SetConnection(MONGOSTRINGENV, dbname string) (*mongo.Database, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRINGENV)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
+	}
+	return client.Database(dbname), nil
+}
+
+func MongoConnect(MONGOSTRINGENV, dbname string) *mongo.Database {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRINGENV)))
 	if err != nil {
 		fmt.Printf("MongoConnect: %v\n", err)
+		return nil
 	}
 	return client.Database(dbname)
 }
 
-func GetConnectionMongo(MongoString, dbname string) *mongo.Database {
-	MongoInfo := atdb.DBInfo{
-		DBString: os.Getenv(MongoString),
-		DBName:   dbname,
-	}
-	conn := atdb.MongoConnect(MongoInfo)
-	return conn
-}
-
-func SetConnection(MONGOCONNSTRINGENV, dbname string) *mongo.Database {
-	var DBmongoinfo = atdb.DBInfo{
-		DBString: os.Getenv(MONGOCONNSTRINGENV),
-		DBName:   dbname,
-	}
-	return atdb.MongoConnect(DBmongoinfo)
-}
-
 // Parkiran
-func CreateNewParkiran(mongoconn *mongo.Database, collection string, parkirandata Parkiran) interface{} {
-	return atdb.InsertOneDoc(mongoconn, collection, parkirandata)
-}
-
-// Function Parkiran
-func CreateParkiran(mongoconn *mongo.Database, collection string, parkirandata Parkiran) interface{} {
-	return atdb.InsertOneDoc(mongoconn, collection, parkirandata)
-}
-
-func DeleteParkiran(mongoconn *mongo.Database, collection string, parkirandata Parkiran) interface{} {
-	filter := bson.M{"parkiranid": parkirandata.ParkiranId}
-	return atdb.DeleteOneDoc(mongoconn, collection, filter)
-}
-
-func UpdatedParkiran(mongoconn *mongo.Database, collection string, filter bson.M, parkirandata Parkiran) interface{} {
-	filter = bson.M{"parkiranid": parkirandata.ParkiranId}
-	return atdb.ReplaceOneDoc(mongoconn, collection, filter, parkirandata)
-}
-
-func GetAllParkiran(mongoconn *mongo.Database, collection string) []Parkiran {
-	parkiran := atdb.GetAllDoc[[]Parkiran](mongoconn, collection)
-	return parkiran
-}
-
-func GetAllParkiranID(mongoconn *mongo.Database, collection string, parkirandata Parkiran) Parkiran {
-	filter := bson.M{
-		"parkiranid":     parkirandata.ParkiranId,
-		"nama":           parkirandata.Nama,
-		"npm":            parkirandata.NPM,
-		"jurusan":        parkirandata.Jurusan,
-		"namakendaraan":  parkirandata.NamaKendaraan,
-		"nomorkendaraan": parkirandata.NomorKendaraan,
-		"jeniskendaraan": parkirandata.JenisKendaraan,
+func CreateNewParkiran(mongoconn *mongo.Database, collection string, parkirandata Parkiran) (*mongo.InsertOneResult, error) {
+	coll := mongoconn.Collection(collection)
+	result, err := coll.InsertOne(context.TODO(), parkirandata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert document: %v", err)
 	}
-	parkiranID := atdb.GetOneDoc[Parkiran](mongoconn, collection, filter)
-	return parkiranID
+	return result, nil
+}
+
+func DeleteParkiran(mongoconn *mongo.Database, collection string, parkiranID int) (*mongo.DeleteResult, error) {
+	coll := mongoconn.Collection(collection)
+	filter := bson.M{"parkiranid": parkiranID}
+	result, err := coll.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete document: %v", err)
+	}
+	return result, nil
+}
+
+func UpdateParkiran(mongoconn *mongo.Database, collection string, parkiranID int, parkirandata Parkiran) (*mongo.UpdateResult, error) {
+	coll := mongoconn.Collection(collection)
+	filter := bson.M{"parkiranid": parkiranID}
+	update := bson.M{"$set": parkirandata}
+	result, err := coll.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update document: %v", err)
+	}
+	return result, nil
+}
+
+func GetAllParkiran(mongoconn *mongo.Database, collection string) ([]Parkiran, error) {
+	coll := mongoconn.Collection(collection)
+	cursor, err := coll.Find(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve documents: %v", err)
+	}
+	defer cursor.Close(context.TODO())
+
+	var parkirans []Parkiran
+	if err := cursor.All(context.TODO(), &parkirans); err != nil {
+		return nil, fmt.Errorf("failed to decode documents: %v", err)
+	}
+	return parkirans, nil
+}
+
+func GetParkiranByID(mongoconn *mongo.Database, collection string, parkiranID int) (*Parkiran, error) {
+	coll := mongoconn.Collection(collection)
+	filter := bson.M{"parkiranid": parkiranID}
+	var parkiran Parkiran
+	if err := coll.FindOne(context.TODO(), filter).Decode(&parkiran); err != nil {
+		return nil, fmt.Errorf("failed to retrieve document: %v", err)
+	}
+	return &parkiran, nil
 }
 
 func CreateResponse(status bool, message string, data interface{}) Response {
-    return Response{
-        Status: status,
+	return Response{
+		Status: status,
         Message: message,
         Data:    data,
     }
 }
+
