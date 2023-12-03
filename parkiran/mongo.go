@@ -49,6 +49,17 @@ func CreateNewParkiran(mongoconn *mongo.Database, collection string, parkirandat
 	return result, nil
 }
 
+func InsertParkiranData(db *mongo.Database, collectionName string, parkiranData Parkiran) error {
+    collection := db.Collection(collectionName)
+    
+    _, err := collection.InsertOne(context.Background(), parkiranData)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
 func DeleteParkiran(mongoconn *mongo.Database, collection string, parkiranID int) (*mongo.DeleteResult, error) {
 	coll := mongoconn.Collection(collection)
 	filter := bson.M{"parkiranid": parkiranID}

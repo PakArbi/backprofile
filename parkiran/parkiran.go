@@ -100,6 +100,31 @@ func GCFGetAllParkiran(MONGOCONNSTRINGENV, dbname, collectionname string, r *htt
 	return GCFReturnStruct(CreateResponse(true, "Success Get All Parkiran", dataparkiran))
 }
 
+//gcf untuk insertdataParkiran
+func GCFPostParkiran(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.Request) string {
+    mconn, err := SetConnection(MONGOCONNSTRINGENV, dbname)
+    if err != nil {
+        return err.Error()
+    }
+
+    var parkiranData Parkiran // Gantilah "Parkiran" dengan struktur data yang sesuai
+
+    // Mendekode data dari body request menjadi variabel parkiranData
+    err = json.NewDecoder(r.Body).Decode(&parkiranData)
+    if err != nil {
+        return GCFReturnStruct(CreateResponse(false, fmt.Sprintf("Failed to parse parkiran data: %v", err), nil))
+    }
+
+    // Memasukkan data parkiran ke dalam database
+    err = InsertParkiranData(mconn, collectionname, parkiranData)
+    if err != nil {
+        return GCFReturnStruct(CreateResponse(false, fmt.Sprintf("Failed to insert parkiran data: %v", err), nil))
+    }
+
+    return GCFReturnStruct(CreateResponse(true, "Success inserting parkiran data", parkiranData))
+}
+
+
 // Get All Parkiran By Id
 func GCFGetAllParkiranID(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.Request) string {
 	mconn, err := SetConnection(MONGOCONNSTRINGENV, dbname)
