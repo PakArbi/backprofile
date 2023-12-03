@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"bytes"
+	// "time"
 	"encoding/json"
 	"encoding/base64"
 	"image"
 	"image/png"
-	// "io/ioutil"
-	// "net/http"
+	"strconv"
+	"net/http"
 	"os"
 
 	// "github.com/nfnt/resize"
@@ -19,6 +20,88 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 )
+
+func GCHandlerFunc(Mongostring, dbname, colname string) string {
+	koneksyen := GetConnectionMongo(Mongostring, dbname)
+	dataprofile := GetAllData(koneksyen, colname)
+
+	jsoncihuy, _ := json.Marshal(dataprofile)
+
+	return string(jsoncihuy)
+}
+
+func GCFPostDataProf(Mongostring, dbname, colname string, r *http.Request) string {
+	req := new(Credents)
+	conn := GetConnectionMongo(Mongostring, dbname)
+	resp := new(Profile)
+	err := json.NewDecoder(r.Body).Decode(&resp)
+	if err != nil {
+		req.Status = strconv.Itoa(http.StatusNotFound)
+		req.Message = "error parsing application/json: " + err.Error()
+	} else {
+		req.Status = strconv.Itoa(http.StatusOK)
+		Ins := InsertDataProfile(conn, colname, nil /* Untuk koordinat ([]float64), berikan nilai yang sesuai */, 
+		resp.ID, resp.NamaLengkap, 
+		resp.NPM, resp.Prodi, 
+		resp.NamaKendaraan, 
+		resp.NomorKendaraan, 
+		resp.Time.WaktuMasuk)
+
+		req.Message = fmt.Sprintf("%v:%v", "Berhasil Input data", Ins)
+	}
+	return ReturnStringStruct(req)
+}
+
+func ReturnStringStruct(Data any) string {
+	jsonee, _ := json.Marshal(Data)
+	return string(jsonee)
+}
+
+func GCFUpdateProfile(Mongostring, dbname, colname string, r *http.Request) string {
+	req := new(Credents)
+	resp := new(Profile)
+	conn := GetConnectionMongo(Mongostring, dbname)
+	err := json.NewDecoder(r.Body).Decode(&resp)
+	if err != nil {
+		req.Status = strconv.Itoa(http.StatusNotFound)
+		req.Message = "error parsing application/json: " + err.Error()
+	} else {
+		req.Status = strconv.Itoa(http.StatusOK)
+		Ins := InsertDataProfile(conn, colname, nil /* Untuk koordinat ([]float64), berikan nilai yang sesuai */, 
+		resp.ID, 
+		resp.NamaLengkap, 
+		resp.NPM, 
+		resp.Prodi, 
+		resp.NamaKendaraan, 
+		resp.NomorKendaraan, 
+		resp.Time.WaktuMasuk)
+
+		req.Message = fmt.Sprintf("%v:%v", "Berhasil Update data", Ins)
+	}
+	return ReturnStringStruct(req)
+}
+
+func GCFDeleteDataProfile(Mongostring, dbname, colname string, r *http.Request) string {
+    req := new(Credents)
+    resp := new(Profile)
+    conn := GetConnectionMongo(Mongostring, dbname)
+    err := json.NewDecoder(r.Body).Decode(&resp)
+    if err != nil {
+        req.Status = strconv.Itoa(http.StatusNotFound)
+        req.Message = "error parsing application/json: " + err.Error()
+    } else {
+        req.Status = strconv.Itoa(http.StatusOK)
+        delResult, delErr := DeleteDataProfile(conn, colname, resp.ID)
+        if delErr != nil {
+            req.Status = strconv.Itoa(http.StatusInternalServerError)
+            req.Message = "error deleting data: " + delErr.Error()
+        } else {
+            req.Message = fmt.Sprintf("Berhasil menghapus data. Jumlah data terhapus: %v", delResult.DeletedCount)
+        }
+    }
+    return ReturnStringStruct(req)
+}
+
 
 func CreateProfile(db *mongo.Database, profile Profile) error {
 	collection := db.Collection("profiles")

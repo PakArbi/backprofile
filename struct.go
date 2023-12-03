@@ -45,15 +45,20 @@ type Credential struct {
 	Message string `json:"message,omitempty" bson:"message,omitempty"`
 }
 
+type Credents struct {
+	Status  string `json:"status" bson:"status"`
+	Message string `json:"message" bson:"message"`
+}
+
 type Response struct {
 	Status  bool        `json:"status" bson:"status"`
 	Message string      `json:"message" bson:"message"`
 	Data    interface{} `json:"data" bson:"data"`
 }
 
-type Jurusan struct {
-	JurusanId   int    `json:"jurusanid" bson:"jurusanid,omitempty"`
-	JurusanName string `json:"jurusanname" bson:"jurusanname,omitempty"`
+type Prodi struct {
+	ProdiId   int    `json:"jurusanid" bson:"jurusanid,omitempty"`
+	ProdiName string `json:"jurusanname" bson:"jurusanname,omitempty"`
 }
 
 type Updated struct {
