@@ -23,12 +23,13 @@ func GetConnectionMongo(MONGOSTRING, dbname string) (*mongo.Database, error) {
 }
 
 func SetConnection(MONGOSTRINGENV, dbname string) (*mongo.Database, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRINGENV)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
-	}
-	return client.Database(dbname), nil
+    client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRINGENV)))
+    if err != nil {
+        return nil, fmt.Errorf("failed to connect to MongoDB: %v", err)
+    }
+    return client.Database(dbname), nil
 }
+
 
 func MongoConnect(MONGOSTRINGENV, dbname string) *mongo.Database {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv(MONGOSTRINGENV)))
@@ -58,6 +59,12 @@ func InsertParkiranData(db *mongo.Database, collectionName string, parkiranData 
     }
 
     return nil
+}
+
+func InsertParkiranDataToDB(db *mongo.Database, collectionName string, parkiranData Parkiran) error {
+    collection := db.Collection(collectionName)
+    _, err := collection.InsertOne(context.Background(), parkiranData)
+    return err
 }
 
 func DeleteParkiran(mongoconn *mongo.Database, collection string, parkiranID int) (*mongo.DeleteResult, error) {

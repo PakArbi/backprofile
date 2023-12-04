@@ -14,6 +14,7 @@ import (
 	"os"
 
 	// "github.com/nfnt/resize"
+    // "github.com/PakArbi/backprofile/parkiran"
 	"github.com/disintegration/imaging"
 	qrcode "github.com/skip2/go-qrcode"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -211,43 +212,153 @@ func GetAllProfiles(db *mongo.Database) ([]Profile, error) {
 }
 
 // GenerateCodeQr menghasilkan kode QR dari data JSON dan menyimpannya di MongoDB
-func GenerateCodeQr(dataJSON string, dbName, collectionName string, client *mongo.Client) error {
-	code := &CodeQR{
-		Data: dataJSON,
-	}
+// CodeQr menghasilkan kode QR dari data JSON dan menyimpannya di MongoDB
+func CodeQr(dataJSON string, dbName, collectionName string, client *mongo.Client) error {
+    var profileData Profile
 
-	// Mengonversi data menjadi JSON
-	jsonData, err := json.Marshal(code)
-	if err != nil {
-		return fmt.Errorf("gagal mengonversi data ke JSON: %v", err)
-	}
-
-	// Membuat kode QR dari data JSON
-	qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
-	if err != nil {
-		return fmt.Errorf("gagal membuat kode QR: %v", err)
-	}
-
-	// Menyimpan kode QR ke dalam MongoDB
-	collection := client.Database(dbName).Collection(collectionName)
-	ctx := context.Background()
-	_, err = collection.InsertOne(ctx, bson.M{"qrcode": qrCode})
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan kode QR ke MongoDB: %v", err)
-	}
-
-	return nil
-}
-	
-//generateqrLogo
-// GenerateCodeQRLogo generates a QR code with a logo and saves it to MongoDB
-func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *mongo.Client) error {
-    code := &CodeQR{
-        Data: dataJSON,
+    // Unmarshal dataJSON ke dalam struct Profile
+    if err := json.Unmarshal([]byte(dataJSON), &profileData); err != nil {
+        return fmt.Errorf("gagal mengonversi data JSON: %v", err)
     }
 
-    // Convert data to JSON
+    // Membuat struct CodeQR dengan data Profile
+    code := &CodeQR{
+        Data: profileData,
+    }
+
+    // Mengonversi data menjadi JSON
     jsonData, err := json.Marshal(code)
+    if err != nil {
+        return fmt.Errorf("gagal mengonversi data ke JSON: %v", err)
+    }
+
+    // Membuat kode QR dari data JSON
+    qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
+    if err != nil {
+        return fmt.Errorf("gagal membuat kode QR: %v", err)
+    }
+
+    // Menyimpan kode QR ke dalam MongoDB
+    collection := client.Database(dbName).Collection(collectionName)
+    ctx := context.Background()
+    _, err = collection.InsertOne(ctx, bson.M{"qrcode": qrCode})
+    if err != nil {
+        return fmt.Errorf("gagal menyimpan kode QR ke MongoDB: %v", err)
+    }
+
+    return nil
+}
+
+func GenerateCodeQr(dataJSON string, dbName, collectionName string, client *mongo.Client) error {
+    var profileData Profile
+    err := json.Unmarshal([]byte(dataJSON), &profileData)
+    if err != nil {
+        return fmt.Errorf("gagal mengonversi data JSON: %v", err)
+    }
+
+    code := &CodeQR{
+        Data: profileData,
+    }
+
+    // Mengonversi data menjadi JSON
+    jsonData, err := json.Marshal(code)
+    if err != nil {
+        return fmt.Errorf("gagal mengonversi data ke JSON: %v", err)
+    }
+
+    // Membuat kode QR dari data JSON
+    qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
+    if err != nil {
+        return fmt.Errorf("gagal membuat kode QR: %v", err)
+    }
+
+    // Menyimpan kode QR ke dalam MongoDB
+    collection := client.Database(dbName).Collection(collectionName)
+    ctx := context.Background()
+    _, err = collection.InsertOne(ctx, bson.M{"qrcode": qrCode})
+    if err != nil {
+        return fmt.Errorf("gagal menyimpan kode QR ke MongoDB: %v", err)
+    }
+
+    return nil
+}
+
+	
+// // GenerateCodeQRLogo generates a QR code with a logo and saves it to MongoDB
+// func GenerateCodeQRLogo(profile Profile, dbName, collectionName string, client *mongo.Client) error {
+//     code := &CodeQR{
+//         Data: profile,
+//     }
+
+//     // Convert data to JSON
+//     jsonData, err := json.Marshal(code)
+//     if err != nil {
+//         return fmt.Errorf("failed to convert data to JSON: %v", err)
+//     }
+
+//     // Generate QR code
+//     qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
+//     if err != nil {
+//         return fmt.Errorf("failed to generate QR code: %v", err)
+//     }
+
+//     // Open ULBI logo image
+//     imagePath := "./img/logo_ulbi.png" // Replace with the correct path to the image
+//     logoFile, err := os.Open(imagePath)
+//     if err != nil {
+//         return fmt.Errorf("failed to open image file: %v", err)
+//     }
+//     defer logoFile.Close()
+
+//     // Decode logo image
+//     logoImg, _, err := image.Decode(logoFile)
+//     if err != nil {
+//         return fmt.Errorf("failed to decode logo image: %v", err)
+//     }
+
+//     // Resize logo to fit the QR code
+//     resizedLogo := imaging.Resize(logoImg, 80, 80, imaging.Lanczos)
+
+//     // Convert QR code to image format
+//     qrImage, err := qrcodeToImage(qrCode)
+//     if err != nil {
+//         return fmt.Errorf("failed to convert QR code to image: %v", err)
+//     }
+
+//     // Overlay logo on QR code
+//     qrWithLogo := imaging.OverlayCenter(qrImage, resizedLogo, 1.0)
+
+//     // Encode QR code with logo to PNG
+//     var buf bytes.Buffer
+//     err = png.Encode(&buf, qrWithLogo)
+//     if err != nil {
+//         return fmt.Errorf("failed to encode QR code with logo to PNG: %v", err)
+//     }
+
+//     // Encode PNG data to base64
+//     base64QR := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+//     // Save QR code with logo (base64 encoded) to MongoDB
+//     collection := client.Database(dbName).Collection(collectionName)
+//     ctx := context.Background()
+//     _, err = collection.InsertOne(ctx, bson.M{"qrcode_logo": base64QR})
+//     if err != nil {
+//         return fmt.Errorf("failed to save QR code with logo to MongoDB: %v", err)
+//     }
+
+//     return nil
+// }
+
+// GenerateCodeQRLogo generates a QR code with a logo and saves it to MongoDB
+func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *mongo.Client) error {
+    // Unmarshal dataJSON ke struct Profile
+    var profile Profile
+    if err := json.Unmarshal([]byte(dataJSON), &profile); err != nil {
+        return fmt.Errorf("failed to convert data JSON: %v", err)
+    }
+
+    // Convert Profile data to JSON
+    jsonData, err := json.Marshal(profile)
     if err != nil {
         return fmt.Errorf("failed to convert data to JSON: %v", err)
     }
@@ -258,7 +369,7 @@ func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *
         return fmt.Errorf("failed to generate QR code: %v", err)
     }
 
-    // Open ULBI logo image
+    // Load the logo image
     imagePath := "./img/logo_ulbi.png" // Replace with the correct path to the image
     logoFile, err := os.Open(imagePath)
     if err != nil {
@@ -272,19 +383,10 @@ func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *
         return fmt.Errorf("failed to decode logo image: %v", err)
     }
 
-    // Resize logo to fit the QR code
-    resizedLogo := imaging.Resize(logoImg, 80, 80, imaging.Lanczos)
+    // Create a new image to overlay the QR code and logo
+    qrWithLogo := overlayImage(qrCode, logoImg)
 
-    // Convert QR code to image format
-    qrImage, err := qrcodeToImage(qrCode)
-    if err != nil {
-        return fmt.Errorf("failed to convert QR code to image: %v", err)
-    }
-
-    // Overlay logo on QR code
-    qrWithLogo := imaging.OverlayCenter(qrImage, resizedLogo, 1.0)
-
-    // Encode QR code with logo to PNG
+    // Encode the image to PNG
     var buf bytes.Buffer
     err = png.Encode(&buf, qrWithLogo)
     if err != nil {
@@ -294,7 +396,7 @@ func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *
     // Encode PNG data to base64
     base64QR := base64.StdEncoding.EncodeToString(buf.Bytes())
 
-    // Save QR code with logo (base64 encoded) to MongoDB
+    // Save the base64-encoded QR code with logo to MongoDB
     collection := client.Database(dbName).Collection(collectionName)
     ctx := context.Background()
     _, err = collection.InsertOne(ctx, bson.M{"qrcode_logo": base64QR})
@@ -302,8 +404,24 @@ func GenerateCodeQRLogo(dataJSON string, dbName, collectionName string, client *
         return fmt.Errorf("failed to save QR code with logo to MongoDB: %v", err)
     }
 
+    // Return nil upon successful completion
     return nil
 }
+
+func overlayImage(qrCode []byte, logo image.Image) image.Image {
+    // Convert QR code bytes to an image
+    qrImg, _, _ := image.Decode(bytes.NewReader(qrCode))
+
+    // Resize the logo to fit the QR code
+    resizedLogo := imaging.Resize(logo, 80, 80, imaging.Lanczos)
+
+    // Overlay the logo on the QR code
+    qrWithLogo := imaging.OverlayCenter(qrImg, resizedLogo, 1.0)
+
+    return qrWithLogo
+}
+
+
 
 // GenerateQRCodeString generates a QR code from a string and encodes it as a URL-safe string
 func GenerateQRCodeString(text string) (string, error) {

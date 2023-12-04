@@ -20,7 +20,7 @@ type ProfileRepository struct {
 }
 
 type CodeQR struct {
-	Data string `json:"data"`
+	Data Profile `json:"data,omitempty" bson:"data,omitempty"`
 }
 
 type Profile struct {

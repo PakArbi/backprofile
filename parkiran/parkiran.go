@@ -151,7 +151,6 @@ func GCFGetAllParkiranID(MONGOCONNSTRINGENV, dbname, collectionname string, r *h
 }
 
 
-
 func GCFReturnStruct(DataStuct any) string {
 	jsondata, _ := json.Marshal(DataStuct)
 	return string(jsondata)
