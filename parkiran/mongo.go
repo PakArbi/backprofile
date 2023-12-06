@@ -121,3 +121,16 @@ func CreateResponse(status bool, message string, data interface{}) Response {
     }
 }
 
+// SaveQRCodeToMongoDB simulates the function to save the generated QR code to MongoDB
+func SaveQRCodeToMongoDB(database *mongo.Database, collectionName string, qrCode []byte) error {
+    collection := database.Collection(collectionName)
+    ctx := context.Background()
+    
+    // Simpan kode QR ke dalam database MongoDB
+    _, err := collection.InsertOne(ctx, bson.M{"qrcode": qrCode})
+    if err != nil {
+        return fmt.Errorf("failed to save QR code to MongoDB: %v", err)
+    }
+
+    return nil
+}

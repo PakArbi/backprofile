@@ -6,6 +6,7 @@ import (
 	// "os"
 	"fmt"
 
+	qrcode "github.com/skip2/go-qrcode"
 	// "github.com/whatsauth/watoken"
 	// "go.mongodb.org/mongo-driver/bson"
 )
@@ -100,7 +101,23 @@ func GCFGetAllParkiran(MONGOCONNSTRINGENV, dbname, collectionname string, r *htt
 	return GCFReturnStruct(CreateResponse(true, "Success Get All Parkiran", dataparkiran))
 }
 
-//gcf untuk insertdataParkiran
+func generateCodeQR(parkiran Parkiran) ([]byte, error) {
+    // Convert data to JSON
+    jsonData, err := json.Marshal(parkiran)
+    if err != nil {
+        return nil, fmt.Errorf("failed to convert data to JSON: %v", err)
+    }
+
+    // Generate QR code
+    qrCode, err := qrcode.Encode(string(jsonData), qrcode.Medium, 256)
+    if err != nil {
+        return nil, fmt.Errorf("failed to generate QR code: %v", err)
+    }
+
+    return qrCode, nil
+}
+
+// GCFPostParkiran is an example of an HTTP request handler function
 func GCFPostParkiran(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.Request) string {
     mconn, err := SetConnection(MONGOCONNSTRINGENV, dbname)
     if err != nil {
@@ -121,8 +138,30 @@ func GCFPostParkiran(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.
         return GCFReturnStruct(CreateResponse(false, fmt.Sprintf("Failed to insert parkiran data: %v", err), nil))
     }
 
-    return GCFReturnStruct(CreateResponse(true, "Success inserting parkiran data", parkiranData))
+    // Generate QR code
+    qrCode, err := generateCodeQR(parkiranData)
+    if err != nil {
+        return GCFReturnStruct(CreateResponse(false, fmt.Sprintf("Failed to generate QR code: %v", err), nil))
+    }
+
+    // Simpan QR code ke MongoDB
+    err = SaveQRCodeToMongoDB(mconn, "PakArbi", qrCode) // Ganti dengan fungsi yang sesuai
+    if err != nil {
+        return GCFReturnStruct(CreateResponse(false, fmt.Sprintf("Failed to save QR code to MongoDB: %v", err), nil))
+    }
+
+    // Create notification based on Parkiran data
+    notification := Notifikasi{
+        Status:  200,
+        Message: "QR code generated successfully and saved to MongoDB",
+        Data:    parkiranData,
+    }
+
+    return GCFReturnStruct(CreateResponse(true, "Success inserting parkiran data", notification))
 }
+
+
+
 
 
 // Get All Parkiran By Id
